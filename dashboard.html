@@ -217,7 +217,7 @@ body{
       <button class="aff-btn" onclick="nextAff()">›</button>
     </div>
     <div style="margin-top:10px;position:relative;z-index:1;">
-      <button id="affModeBtn" onclick="toggleAffMode()" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:20px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;">🔀 Casuale</button>
+      <button id="affModeBtn" onclick="toggleCustAff()" style="background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);color:rgba(255,255,255,.55);border-radius:20px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;">✏️ Le mie affermazioni</button>
     </div>
   </div>
   <div class="streak-row">
@@ -247,16 +247,11 @@ body{
       <button class="ibtn" onclick="addRoutineItem('eve')">+</button>
     </div>
   </div>
-  <div class="card">
-    <div class="card-title">✏️ Le mie affermazioni
-      <div style="display:flex;gap:6px;">
-        <button onclick="copyCurrentAff()" style="background:rgba(124,92,252,.15);border:1px solid var(--accent);color:var(--accent);border-radius:10px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer;">Copia questa</button>
-        <button onclick="document.getElementById('addAffRow').style.display='flex'" style="background:var(--accent);border:none;color:#fff;border-radius:10px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer;">+ Aggiungi</button>
-      </div>
-    </div>
+  <div class="card" id="custAffSection" style="display:none;">
+    <div class="card-title" onclick="toggleCustAff()" style="cursor:pointer;">✏️ Le mie affermazioni <span style="float:right;font-size:16px;" id="custAffChev">›</span></div>
     <div id="custAffList"></div>
-    <div class="irow" id="addAffRow" style="display:none;margin-top:8px;">
-      <input class="iinput" id="newAffInput" placeholder="La tua affermazione..." onkeydown="if(event.key==='Enter')addAffirmation()">
+    <div class="irow" style="margin-top:8px;">
+      <input class="iinput" id="newAffInput" placeholder="Scrivi la tua affermazione..." onkeydown="if(event.key==='Enter')addAffirmation()">
       <button class="ibtn" onclick="addAffirmation()">+</button>
     </div>
   </div>
@@ -440,7 +435,7 @@ const DEF_YEAR_TASKS=[{id:'y1',name:'Garage sistemato',done:false},{id:'y2',name
 
 const LS={g:(k,d)=>{try{const v=localStorage.getItem(k);return v!==null?JSON.parse(v):d;}catch{return d;}},s:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch{}}};
 const S={
-  custAff:LS.g('custAff',[]),affMode:LS.g('affMode','daily'),affDayKey:LS.g('affDayKey',''),affDayIdx:LS.g('affDayIdx',0),affNavIdx:0,
+  custAff:LS.g('custAff',[]),affMode:'daily',affDayKey:LS.g('affDayKey',''),affDayIdx:LS.g('affDayIdx',0),affNavIdx:0,showCustAff:false,
   streak:LS.g('streak',0),streakD:LS.g('streakD',''),
   vb:LS.g('vb',[]),fsI:0,
   morItems:LS.g('morItems',DEF_MOR),eveItems:LS.g('eveItems',DEF_EVE),
@@ -498,11 +493,15 @@ function showTab(name,btn){
 }
 
 // ── Affermazioni ──
+let affAutoTimer=null;
+function startAffTimer(){
+  clearInterval(affAutoTimer);
+  if(BOOK_AFFS.length>1)affAutoTimer=setInterval(()=>{S.affNavIdx=(S.affNavIdx+1)%BOOK_AFFS.length;renderAff();},5000);
+}
 function getTodayAffIdx(){
   const key=new Date().toDateString();
   if(S.affDayKey!==key){
-    if(S.affMode==='random'){S.affDayIdx=Math.floor(Math.random()*BOOK_AFFS.length);}
-    else{const d=new Date();S.affDayIdx=Math.floor((d-new Date(d.getFullYear(),0,0))/864e5)%BOOK_AFFS.length;}
+    const d=new Date();S.affDayIdx=Math.floor((d-new Date(d.getFullYear(),0,0))/864e5)%BOOK_AFFS.length;
     S.affDayKey=key;S.affNavIdx=S.affDayIdx;
     LS.s('affDayKey',S.affDayKey);LS.s('affDayIdx',S.affDayIdx);
   }
@@ -515,15 +514,25 @@ function renderAff(){
   document.getElementById('affSource').textContent='— '+aff.author;
   document.getElementById('affBook').innerHTML=`<a href="${aff.link}" target="_blank" rel="noopener" style="color:rgba(255,255,255,.8);font-size:13px;text-decoration:none;">📚 ${aff.book} →</a>`;
   document.getElementById('affDots').innerHTML=BOOK_AFFS.map((_,i)=>`<div class="aff-dot${i===idx?' on':''}"></div>`).join('');
-  const mb=document.getElementById('affModeBtn');if(mb)mb.textContent=S.affMode==='random'?'🔀 Casuale ON':'🔀 Casuale';
 }
-function nextAff(){S.affNavIdx=(S.affNavIdx+1)%BOOK_AFFS.length;renderAff();}
-function prevAff(){S.affNavIdx=(S.affNavIdx-1+BOOK_AFFS.length)%BOOK_AFFS.length;renderAff();}
-function toggleAffMode(){S.affMode=S.affMode==='random'?'daily':'random';LS.s('affMode',S.affMode);S.affDayKey='';LS.s('affDayKey','');getTodayAffIdx();renderAff();}
-function copyCurrentAff(){const idx=((S.affNavIdx%BOOK_AFFS.length)+BOOK_AFFS.length)%BOOK_AFFS.length;const aff=BOOK_AFFS[idx];const t=aff.text+' — '+aff.author;if(S.custAff.includes(t)){alert('Hai già questa affermazione!');return;}S.custAff.push(t);LS.s('custAff',S.custAff);renderCustAffs();}
-function renderCustAffs(){const el=document.getElementById('custAffList');if(!S.custAff.length){el.innerHTML='<div style="color:var(--text2);font-size:13px;padding:8px 0">Nessuna affermazione personale — aggiungine una 💪</div>';return;}el.innerHTML=S.custAff.map((a,i)=>`<div style="display:flex;align-items:flex-start;gap:8px;padding:10px 0;border-bottom:1px solid #1e1e2e;"><div style="flex:1;font-size:14px;line-height:1.5;">${a}</div><button onclick="delCustAff(${i})" style="background:none;border:none;color:var(--text2);font-size:14px;cursor:pointer;padding:2px 4px;flex-shrink:0;">✕</button></div>`).join('');}
+function nextAff(){S.affNavIdx=(S.affNavIdx+1)%BOOK_AFFS.length;renderAff();startAffTimer();}
+function prevAff(){S.affNavIdx=(S.affNavIdx-1+BOOK_AFFS.length)%BOOK_AFFS.length;renderAff();startAffTimer();}
+function toggleCustAff(){
+  S.showCustAff=!S.showCustAff;
+  const sec=document.getElementById('custAffSection');
+  const btn=document.getElementById('affModeBtn');
+  if(S.showCustAff){
+    sec.style.display='block';
+    btn.style.background='rgba(255,255,255,.3)';btn.style.color='#fff';btn.style.borderColor='rgba(255,255,255,.7)';
+    renderCustAffs();
+  }else{
+    sec.style.display='none';
+    btn.style.background='rgba(255,255,255,.15)';btn.style.color='rgba(255,255,255,.55)';btn.style.borderColor='rgba(255,255,255,.3)';
+  }
+}
+function renderCustAffs(){const el=document.getElementById('custAffList');if(!S.custAff.length){el.innerHTML='<div style="color:var(--text2);font-size:13px;padding:8px 0">Nessuna affermazione — aggiungine una 💪</div>';return;}el.innerHTML=S.custAff.map((a,i)=>`<div style="display:flex;align-items:flex-start;gap:8px;padding:10px 0;border-bottom:1px solid #1e1e2e;"><div style="flex:1;font-size:14px;line-height:1.5;">${a}</div><button onclick="delCustAff(${i})" style="background:none;border:none;color:var(--text2);font-size:14px;cursor:pointer;padding:2px 4px;flex-shrink:0;">✕</button></div>`).join('');}
 function delCustAff(i){S.custAff.splice(i,1);LS.s('custAff',S.custAff);renderCustAffs();}
-function addAffirmation(){const inp=document.getElementById('newAffInput');const t=inp.value.trim();if(!t)return;S.custAff.push(t);LS.s('custAff',S.custAff);inp.value='';document.getElementById('addAffRow').style.display='none';renderCustAffs();}
+function addAffirmation(){const inp=document.getElementById('newAffInput');const t=inp.value.trim();if(!t)return;S.custAff.push(t);LS.s('custAff',S.custAff);inp.value='';renderCustAffs();}
 
 // ── Streak ──
 function renderStreak(){document.getElementById('streakNum').textContent=S.streak;}
@@ -652,7 +661,7 @@ document.addEventListener('visibilitychange',()=>{
 
 // ── Aree ──
 function renderAree(){document.getElementById('areeList').innerHTML=S.areaData.map(area=>`<div class="area-card"><div class="area-head" onclick="toggleArea('${area.id}')"><div class="area-head-left"><span class="area-emoji">${area.emoji}</span><div><div class="area-name-txt">${area.name}</div><div class="area-count-txt">${area.tasks.length} task nel backlog</div></div></div><span class="area-chevron" id="chev-${area.id}">›</span></div><div class="area-body" id="body-${area.id}">${area.tasks.length?area.tasks.map(t=>`<div class="a-task"><div class="a-task-name">${t.name}</div><button class="a-send-btn" id="sb-${t.id}" onclick="sendToOggi('${area.id}','${t.id}',this);event.stopPropagation()">→ Oggi</button><button class="a-task-del" onclick="delAreaTask('${area.id}','${t.id}');event.stopPropagation()" title="Rimuovi">✕</button></div>`).join(''):'<div style="color:var(--text2);font-size:13px;padding:8px 0">Backlog vuoto — aggiungine uno 👇</div>'}<div class="irow" style="margin-top:10px;"><input class="iinput" id="ai-${area.id}" placeholder="Aggiungi al backlog ${area.name}..." onkeydown="if(event.key===\'Enter\')addAreaTask(\'${area.id}\')"><button class="ibtn" onclick="addAreaTask(\'${area.id}\')">+</button></div></div></div>`).join('');}
-function toggleArea(id){document.getElementById('body-'+id).classList.toggle('open');document.getElementById('chev-'+id).classList.toggle('open');}
+function toggleArea(id){const body=document.getElementById('body-'+id);const opening=!body.classList.contains('open');body.classList.toggle('open');document.getElementById('chev-'+id).classList.toggle('open');if(opening){const card=body.closest('.area-card');if(card)setTimeout(()=>card.scrollIntoView({behavior:'smooth',block:'start'}),60);}}
 function delAreaTask(areaId,taskId){const area=S.areaData.find(a=>a.id===areaId);area.tasks=area.tasks.filter(t=>t.id!==taskId);LS.s('areaData',S.areaData);const wasOpen=document.getElementById('body-'+areaId).classList.contains('open');renderAree();if(wasOpen){document.getElementById('body-'+areaId).classList.add('open');document.getElementById('chev-'+areaId).classList.add('open');}}
 function addAreaTask(areaId){const inp=document.getElementById('ai-'+areaId);const name=inp.value.trim();if(!name)return;const area=S.areaData.find(a=>a.id===areaId);area.tasks.push({id:areaId+Date.now(),name});LS.s('areaData',S.areaData);inp.value='';const wasOpen=document.getElementById('body-'+areaId).classList.contains('open');renderAree();document.getElementById('body-'+areaId).classList.add('open');document.getElementById('chev-'+areaId).classList.add('open');setTimeout(()=>document.getElementById('ai-'+areaId).focus(),50);}
 function sendToOggi(areaId,taskId,btn){const area=S.areaData.find(a=>a.id===areaId);const task=area.tasks.find(t=>t.id===taskId);const today=new Date().toDateString();if(S.todayTasks.some(t=>t.srcId===taskId&&t.date===today)){btn.textContent='✓ già in lista';setTimeout(()=>btn.textContent='→ Oggi',1500);return;}S.todayTasks.push({id:'td'+Date.now(),srcId:taskId,name:task.name,areaId,badge:area.badge,done:false,date:today});LS.s('todayTasks',S.todayTasks);renderTodayList();btn.textContent='✓ aggiunto!';btn.classList.add('sent');setTimeout(()=>{btn.textContent='→ Oggi';btn.classList.remove('sent');},1500);}
@@ -801,7 +810,7 @@ document.querySelectorAll('.modal-overlay').forEach(m=>{m.addEventListener('clic
 // ── Init ──
 migrateData();
 checkResets();
-renderAff();renderCustAffs();renderStreak();renderVB();renderRoutine();renderToday();renderAree();
+renderAff();startAffTimer();renderStreak();renderVB();renderRoutine();renderToday();renderAree();
 renderPeriod('week','weekPList');renderPeriod('month','monthPList');renderPeriod('year','yearPList');
 renderWeekCal();renderMonthCal();
 updateTimerUI();
