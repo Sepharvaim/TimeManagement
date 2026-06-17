@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="La Mia Vita">
-<title>La Mia Vita</title>
+<meta name="apple-mobile-web-app-title" content="Time Management">
+<title>Time Management</title>
 <style>
 :root{
   --bg:#0d0d14;--surface:#16161f;--surface2:#1e1e2a;
@@ -209,10 +209,15 @@ body{
   <div class="page-title">Mente & Focus 🧠</div>
   <div class="aff-card">
     <div class="aff-text" id="affText">Caricamento...</div>
+    <div id="affSource" style="font-size:13px;color:rgba(255,255,255,.75);margin-top:10px;font-style:italic;position:relative;z-index:1;"></div>
+    <div id="affBook" style="margin-top:4px;position:relative;z-index:1;"></div>
     <div class="aff-nav">
       <button class="aff-btn" onclick="prevAff()">‹</button>
       <div class="aff-dots" id="affDots"></div>
       <button class="aff-btn" onclick="nextAff()">›</button>
+    </div>
+    <div style="margin-top:10px;position:relative;z-index:1;">
+      <button id="affModeBtn" onclick="toggleAffMode()" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:20px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;">🔀 Casuale</button>
     </div>
   </div>
   <div class="streak-row">
@@ -243,8 +248,14 @@ body{
     </div>
   </div>
   <div class="card">
-    <div class="card-title">✏️ Aggiungi Affermazione</div>
-    <div class="irow">
+    <div class="card-title">✏️ Le mie affermazioni
+      <div style="display:flex;gap:6px;">
+        <button onclick="copyCurrentAff()" style="background:rgba(124,92,252,.15);border:1px solid var(--accent);color:var(--accent);border-radius:10px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer;">Copia questa</button>
+        <button onclick="document.getElementById('addAffRow').style.display='flex'" style="background:var(--accent);border:none;color:#fff;border-radius:10px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer;">+ Aggiungi</button>
+      </div>
+    </div>
+    <div id="custAffList"></div>
+    <div class="irow" id="addAffRow" style="display:none;margin-top:8px;">
       <input class="iinput" id="newAffInput" placeholder="La tua affermazione..." onkeydown="if(event.key==='Enter')addAffirmation()">
       <button class="ibtn" onclick="addAffirmation()">+</button>
     </div>
@@ -409,7 +420,9 @@ body{
 </div>
 
 <script>
-const AFFS=["Sono un eccezionale time manager. Inizio sempre in orario e finisco sempre in orario.","Ho tutto ciò che serve per iniziare adesso. Le condizioni non devono essere perfette — agisco.","Ogni giorno faccio un passo concreto. Un'azione alla volta costruisco la vita che voglio.","Sono disciplinato, focalizzato, produttivo. Completo i miei compiti con energia e decisione.","Il mio canale YouTube Lego sta prendendo forma. Imparo facendo, non aspettando.","Sono creativo, capace e determinato. Trasformo le idee in risultati reali.","Controllo il mio tempo e la mia attenzione. Non spreco energie su cose che non contano.","Ogni mattina ho chiarezza e direzione. So cosa fare — e lo faccio.","Sono un uomo che mantiene le promesse che si fa. Soprattutto quelle con se stesso."];
+const BOOK_AFFS=[
+  {text:"Sono un time manager eccezionale. Inizio sempre in orario e finisco sempre in orario.",author:"Brian Tracy",book:"Gestione del Tempo",link:"https://www.amazon.it/s?k=brian+tracy+gestione+del+tempo"}
+];
 const DEF_MOR=[{id:'m1',label:'Lettura Bibbia (10 min)'},{id:'m2',label:'Preghiera'},{id:'m3',label:'Leggi 3 affermazioni'},{id:'m4',label:'Denti + viso'},{id:'m5',label:'Colazione vegan raw'},{id:'m6',label:'Fai il letto'},{id:'m7',label:'Pianifica il task principale del giorno'}];
 const DEF_EVE=[{id:'e1',label:'Scrivi cosa hai fatto oggi'},{id:'e2',label:'Pianifica task principale di domani'},{id:'e3',label:'Lettura (Brian Tracy o altro)'},{id:'e4',label:'No telefono 30 min prima di dormire'},{id:'e5',label:'Innaffia piante'}];
 const DEF_AREAS=[
@@ -427,7 +440,7 @@ const DEF_YEAR_TASKS=[{id:'y1',name:'Garage sistemato',done:false},{id:'y2',name
 
 const LS={g:(k,d)=>{try{const v=localStorage.getItem(k);return v!==null?JSON.parse(v):d;}catch{return d;}},s:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch{}}};
 const S={
-  affIdx:LS.g('affIdx',0),custAff:LS.g('custAff',[]),
+  custAff:LS.g('custAff',[]),affMode:LS.g('affMode','daily'),affDayKey:LS.g('affDayKey',''),affDayIdx:LS.g('affDayIdx',0),affNavIdx:0,
   streak:LS.g('streak',0),streakD:LS.g('streakD',''),
   vb:LS.g('vb',[]),fsI:0,
   morItems:LS.g('morItems',DEF_MOR),eveItems:LS.g('eveItems',DEF_EVE),
@@ -474,7 +487,7 @@ function checkResets(){
 let _lastCheckDay=new Date().toDateString();
 setInterval(()=>{
   const today=new Date().toDateString();
-  if(today!==_lastCheckDay){_lastCheckDay=today;checkResets();renderRoutine();renderToday();renderWeekCal();renderMonthCal();}
+  if(today!==_lastCheckDay){_lastCheckDay=today;checkResets();renderAff();renderRoutine();renderToday();renderWeekCal();renderMonthCal();}
 },60000);
 
 function showTab(name,btn){
@@ -485,11 +498,32 @@ function showTab(name,btn){
 }
 
 // ── Affermazioni ──
-function allAffs(){return[...AFFS,...S.custAff];}
-function renderAff(){const all=allAffs();const idx=((S.affIdx%all.length)+all.length)%all.length;document.getElementById('affText').textContent=all[idx];document.getElementById('affDots').innerHTML=all.map((_,i)=>`<div class="aff-dot${i===idx?' on':''}"></div>`).join('');}
-function nextAff(){S.affIdx++;LS.s('affIdx',S.affIdx);renderAff();}
-function prevAff(){S.affIdx--;LS.s('affIdx',S.affIdx);renderAff();}
-function addAffirmation(){const inp=document.getElementById('newAffInput');const t=inp.value.trim();if(!t)return;S.custAff.push(t);LS.s('custAff',S.custAff);inp.value='';renderAff();}
+function getTodayAffIdx(){
+  const key=new Date().toDateString();
+  if(S.affDayKey!==key){
+    if(S.affMode==='random'){S.affDayIdx=Math.floor(Math.random()*BOOK_AFFS.length);}
+    else{const d=new Date();S.affDayIdx=Math.floor((d-new Date(d.getFullYear(),0,0))/864e5)%BOOK_AFFS.length;}
+    S.affDayKey=key;S.affNavIdx=S.affDayIdx;
+    LS.s('affDayKey',S.affDayKey);LS.s('affDayIdx',S.affDayIdx);
+  }
+}
+function renderAff(){
+  getTodayAffIdx();
+  const idx=((S.affNavIdx%BOOK_AFFS.length)+BOOK_AFFS.length)%BOOK_AFFS.length;
+  const aff=BOOK_AFFS[idx];
+  document.getElementById('affText').textContent=aff.text;
+  document.getElementById('affSource').textContent='— '+aff.author;
+  document.getElementById('affBook').innerHTML=`<a href="${aff.link}" target="_blank" rel="noopener" style="color:rgba(255,255,255,.8);font-size:13px;text-decoration:none;">📚 ${aff.book} →</a>`;
+  document.getElementById('affDots').innerHTML=BOOK_AFFS.map((_,i)=>`<div class="aff-dot${i===idx?' on':''}"></div>`).join('');
+  const mb=document.getElementById('affModeBtn');if(mb)mb.textContent=S.affMode==='random'?'🔀 Casuale ON':'🔀 Casuale';
+}
+function nextAff(){S.affNavIdx=(S.affNavIdx+1)%BOOK_AFFS.length;renderAff();}
+function prevAff(){S.affNavIdx=(S.affNavIdx-1+BOOK_AFFS.length)%BOOK_AFFS.length;renderAff();}
+function toggleAffMode(){S.affMode=S.affMode==='random'?'daily':'random';LS.s('affMode',S.affMode);S.affDayKey='';LS.s('affDayKey','');getTodayAffIdx();renderAff();}
+function copyCurrentAff(){const idx=((S.affNavIdx%BOOK_AFFS.length)+BOOK_AFFS.length)%BOOK_AFFS.length;const aff=BOOK_AFFS[idx];const t=aff.text+' — '+aff.author;if(S.custAff.includes(t)){alert('Hai già questa affermazione!');return;}S.custAff.push(t);LS.s('custAff',S.custAff);renderCustAffs();}
+function renderCustAffs(){const el=document.getElementById('custAffList');if(!S.custAff.length){el.innerHTML='<div style="color:var(--text2);font-size:13px;padding:8px 0">Nessuna affermazione personale — aggiungine una 💪</div>';return;}el.innerHTML=S.custAff.map((a,i)=>`<div style="display:flex;align-items:flex-start;gap:8px;padding:10px 0;border-bottom:1px solid #1e1e2e;"><div style="flex:1;font-size:14px;line-height:1.5;">${a}</div><button onclick="delCustAff(${i})" style="background:none;border:none;color:var(--text2);font-size:14px;cursor:pointer;padding:2px 4px;flex-shrink:0;">✕</button></div>`).join('');}
+function delCustAff(i){S.custAff.splice(i,1);LS.s('custAff',S.custAff);renderCustAffs();}
+function addAffirmation(){const inp=document.getElementById('newAffInput');const t=inp.value.trim();if(!t)return;S.custAff.push(t);LS.s('custAff',S.custAff);inp.value='';document.getElementById('addAffRow').style.display='none';renderCustAffs();}
 
 // ── Streak ──
 function renderStreak(){document.getElementById('streakNum').textContent=S.streak;}
@@ -767,7 +801,7 @@ document.querySelectorAll('.modal-overlay').forEach(m=>{m.addEventListener('clic
 // ── Init ──
 migrateData();
 checkResets();
-renderAff();renderStreak();renderVB();renderRoutine();renderToday();renderAree();
+renderAff();renderCustAffs();renderStreak();renderVB();renderRoutine();renderToday();renderAree();
 renderPeriod('week','weekPList');renderPeriod('month','monthPList');renderPeriod('year','yearPList');
 renderWeekCal();renderMonthCal();
 updateTimerUI();
