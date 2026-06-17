@@ -1027,7 +1027,7 @@ document.getElementById('p-settimana').classList.add('plan-locked');
 <!-- MODAL: cattura rapida -->
 <div class="modal-overlay" id="quickModal">
   <div class="modal-sheet">
-    <div class="modal-title">⚡ Cattura rapida</div>
+    <div class="modal-title" style="display:flex;align-items:center;justify-content:space-between;">⚡ Cattura rapida<button onclick="closeModal('quickModal')" style="background:none;border:none;color:var(--text2);font-size:22px;cursor:pointer;line-height:1;padding:0 2px;">✕</button></div>
     <div style="display:flex;gap:8px;margin-bottom:14px;">
       <input class="m-input" id="quickCaptureInput" placeholder="Cosa hai in mente?" style="margin-bottom:0;flex:1;" onkeydown="if(event.key==='Enter')quickSaveToday()">
       <button class="mic-btn" id="quickMicBtn" onclick="startVoiceCapture()">🎙</button>
@@ -1035,7 +1035,6 @@ document.getElementById('p-settimana').classList.add('plan-locked');
     <button class="m-btn m-primary" onclick="quickSaveToday()">→ Aggiungi a Oggi</button>
     <button class="m-btn" id="backlogToggleBtn" style="background:rgba(124,92,252,.12);border:1.5px solid var(--accent);color:var(--accent);margin-top:6px;" onclick="toggleQuickAreaPicker()">→ Salva nel Backlog ▾</button>
     <div id="quickAreaPicker" style="display:none;margin-top:8px;"></div>
-    <button class="m-btn m-cancel" style="margin-top:6px;" onclick="closeModal('quickModal')">Annulla</button>
   </div>
 </div>
 
