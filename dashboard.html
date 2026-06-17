@@ -971,7 +971,7 @@ function startVoiceCapture(){
   const inp=document.getElementById('quickCaptureInput');
   if(voiceRecog){voiceRecog.stop();return;}
   voiceRecog=new SR();
-  voiceRecog.lang='it-IT';voiceRecog.continuous=false;voiceRecog.interimResults=true;
+  voiceRecog.lang=navigator.language||'it-IT';voiceRecog.continuous=false;voiceRecog.interimResults=true;
   voiceRecog.onstart=()=>{btn.classList.add('recording');btn.textContent='⏹';};
   voiceRecog.onresult=(e)=>{inp.value=Array.from(e.results).map(r=>r[0].transcript).join('');};
   voiceRecog.onend=()=>{btn.classList.remove('recording');btn.textContent='🎙';voiceRecog=null;};
