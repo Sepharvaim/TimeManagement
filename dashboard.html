@@ -657,61 +657,55 @@ function delTodayTask(idx){const today=new Date().toDateString();const tasks=S.t
 function markFocusDone(){if(!S.focus)return;timerReset();alert('🎉 Ottimo lavoro! Task completato.\nScegli il prossimo dal backlog.');}
 function resetDay(){if(!confirm('Azzerare i task di oggi e le routine?'))return;const today=new Date().toDateString();S.todayTasks=S.todayTasks.filter(t=>t.date!==today);S.morChk={};S.eveChk={};LS.s('todayTasks',S.todayTasks);LS.s('morChk',{});LS.s('eveChk',{});renderToday();renderRoutine();}
 
-// ── Timer ──
-let audioCtx=null;
-let scheduledNodes=[];
+// ── Timer Audio ──
+// Approccio: pre-render WAV con OfflineAudioContext (nessun gesto utente),
+// sblocca <audio> element al primo tap, poi suona da qualsiasi contesto (timer, background).
+let melodyAudio=null;
+let melodyReady=false;
 const MELODY=[[523.25,0,0.22,0.38],[659.25,0.22,0.22,0.38],[783.99,0.44,0.22,0.38],[1046.5,0.66,0.6,0.45],[523.25,0.66,0.6,0.2],[783.99,0.66,0.6,0.2]];
 
+async function prerenderMelody(){
+  try{
+    const sr=22050,len=Math.ceil(sr*1.6);
+    const off=new OfflineAudioContext(1,len,sr);
+    MELODY.forEach(([freq,delay,dur,vol])=>{
+      const o=off.createOscillator();const g=off.createGain();
+      o.type='sine';o.connect(g);g.connect(off.destination);
+      o.frequency.value=freq;
+      g.gain.setValueAtTime(vol,delay);
+      g.gain.exponentialRampToValueAtTime(0.0001,delay+dur);
+      o.start(delay);o.stop(delay+dur+0.05);
+    });
+    const buf=await off.startRendering();
+    const pcm=buf.getChannelData(0);
+    const s16=new Int16Array(pcm.length);
+    for(let i=0;i<pcm.length;i++)s16[i]=Math.max(-1,Math.min(1,pcm[i]))*32767;
+    const wav=new ArrayBuffer(44+s16.byteLength);
+    const v=new DataView(wav);
+    const ws=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i));};
+    ws(0,'RIFF');v.setUint32(4,36+s16.byteLength,true);
+    ws(8,'WAVE');ws(12,'fmt ');
+    v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);
+    v.setUint32(24,sr,true);v.setUint32(28,sr*2,true);
+    v.setUint16(32,2,true);v.setUint16(34,16,true);
+    ws(36,'data');v.setUint32(40,s16.byteLength,true);
+    new Int16Array(wav,44).set(s16);
+    const url=URL.createObjectURL(new Blob([wav],{type:'audio/wav'}));
+    melodyAudio=new Audio(url);
+    melodyAudio.load();
+  }catch(e){}
+}
+
 function unlockAudio(){
-  if(audioCtx)return;
-  try{
-    audioCtx=new(window.AudioContext||window.webkitAudioContext)();
-    const b=audioCtx.createBuffer(1,1,22050);const s=audioCtx.createBufferSource();
-    s.buffer=b;s.connect(audioCtx.destination);s.start(0);
-  }catch(e){}
+  if(!melodyAudio||melodyReady)return;
+  melodyAudio.play().then(()=>{melodyAudio.pause();melodyAudio.currentTime=0;melodyReady=true;}).catch(()=>{});
 }
 
-function cancelScheduledMelody(){
-  scheduledNodes.forEach(o=>{try{o.stop(0);}catch(e){}});
-  scheduledNodes=[];
-}
-
-// Chiama SOLO da un gesto utente (click). Schedula la melodia inSeconds secondi nel futuro.
-function scheduleTimerMelody(inSeconds){
-  cancelScheduledMelody();
-  if(!audioCtx){try{audioCtx=new(window.AudioContext||window.webkitAudioContext)();}catch(e){return;}}
-  const go=()=>{
-    const t=audioCtx.currentTime+inSeconds;
-    MELODY.forEach(([freq,delay,dur,vol])=>{
-      const o=audioCtx.createOscillator();const g=audioCtx.createGain();
-      o.type='sine';o.connect(g);g.connect(audioCtx.destination);
-      o.frequency.value=freq;
-      g.gain.setValueAtTime(vol,t+delay);
-      g.gain.exponentialRampToValueAtTime(0.0001,t+delay+dur);
-      o.start(t+delay);o.stop(t+delay+dur+0.1);
-      scheduledNodes.push(o);
-    });
-  };
-  if(audioCtx.state==='suspended'){audioCtx.resume().then(go);}else{go();}
-}
-
-// Fallback: usato quando il timer scade da background (Android) o come backup
-async function playMelody(){
+function playMelody(){
   if(navigator.vibrate)navigator.vibrate([200,100,200,100,400]);
-  try{
-    if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();
-    if(audioCtx.state==='suspended')await audioCtx.resume();
-    const t=audioCtx.currentTime;
-    MELODY.forEach(([freq,delay,dur,vol])=>{
-      const o=audioCtx.createOscillator();const g=audioCtx.createGain();
-      o.type='sine';o.connect(g);g.connect(audioCtx.destination);
-      o.frequency.value=freq;
-      g.gain.setValueAtTime(vol,t+delay);
-      g.gain.exponentialRampToValueAtTime(0.0001,t+delay+dur);
-      o.start(t+delay);o.stop(t+delay+dur+0.1);
-    });
-  }catch(e){}
+  if(melodyAudio){melodyAudio.currentTime=0;melodyAudio.play().catch(()=>{});}
 }
+
 function showTimerToast(msg){
   const d=document.createElement('div');
   d.textContent=msg;
@@ -720,6 +714,7 @@ function showTimerToast(msg){
   requestAnimationFrame(()=>{d.style.opacity='1';d.style.transform='translateX(-50%) translateY(0)';});
   setTimeout(()=>{d.style.opacity='0';d.style.transform='translateX(-50%) translateY(-12px)';setTimeout(()=>d.remove(),350);},4000);
 }
+prerenderMelody();
 document.addEventListener('touchstart',unlockAudio,{once:true});
 document.addEventListener('click',unlockAudio,{once:true});
 
@@ -727,13 +722,11 @@ function updateTimerUI(){const m=String(Math.floor(S.timerSec/60)).padStart(2,'0
 function timerToggle(){
   if(S.timerOn){
     clearInterval(S.timerRef);S.timerOn=false;
-    cancelScheduledMelody();
     document.getElementById('playBtn').textContent='▶ Start';
     document.getElementById('playBtn').className='tbtn tbtn-play';
     LS.s('timerRunning',null);
   }else{
     S.timerOn=true;
-    scheduleTimerMelody(S.timerSec); // schedula dal gesto utente (iOS-safe)
     document.getElementById('playBtn').textContent='⏸ Pausa';
     document.getElementById('playBtn').className='tbtn tbtn-pause';
     LS.s('timerRunning',{startTs:Date.now(),secLeft:S.timerSec});
@@ -751,8 +744,9 @@ function timerToggle(){
     },1000);
   }
 }
-function setTimer(min,btn){cancelScheduledMelody();clearInterval(S.timerRef);S.timerOn=false;S.timerSec=min*60;LS.s('timerSec',S.timerSec);LS.s('timerRunning',null);document.getElementById('playBtn').textContent='▶ Start';document.getElementById('playBtn').className='tbtn tbtn-play';updateTimerUI();document.querySelectorAll('.preset').forEach(b=>b.classList.remove('sel'));if(btn)btn.classList.add('sel');}
-function timerReset(){cancelScheduledMelody();clearInterval(S.timerRef);S.timerOn=false;S.timerSec=25*60;LS.s('timerSec',S.timerSec);LS.s('timerRunning',null);document.getElementById('playBtn').textContent='▶ Start';document.getElementById('playBtn').className='tbtn tbtn-play';updateTimerUI();}
+function setTimer(min,btn){clearInterval(S.timerRef);S.timerOn=false;S.timerSec=min*60;LS.s('timerSec',S.timerSec);LS.s('timerRunning',null);document.getElementById('playBtn').textContent='▶ Start';document.getElementById('playBtn').className='tbtn tbtn-play';updateTimerUI();document.querySelectorAll('.preset').forEach(b=>b.classList.remove('sel'));if(btn)btn.classList.add('sel');}
+function timerReset(){clearInterval(S.timerRef);S.timerOn=false;S.timerSec=25*60;LS.s('timerSec',S.timerSec);LS.s('timerRunning',null);document.getElementById('playBtn').textContent='▶ Start';document.getElementById('playBtn').className='tbtn tbtn-play';updateTimerUI();selectPreset25();}
+function selectPreset25(){document.querySelectorAll('.preset').forEach(b=>{b.classList.toggle('sel',b.textContent==='25 min');});}
 function openManualTimer(){const min=parseInt(prompt('Minuti timer:','30'));if(isNaN(min)||min<=0)return;clearInterval(S.timerRef);S.timerOn=false;S.timerSec=min*60;LS.s('timerSec',S.timerSec);LS.s('timerRunning',null);document.getElementById('playBtn').textContent='▶ Start';document.getElementById('playBtn').className='tbtn tbtn-play';updateTimerUI();document.querySelectorAll('.preset').forEach(b=>b.classList.remove('sel'));}
 
 // Riprendi timer da background
@@ -1011,6 +1005,7 @@ renderAff();startAffTimer();renderStreak();renderVB();renderRoutine();renderToda
 renderPeriod('week','weekPList');renderPeriod('month','monthPList');renderPeriod('year','yearPList');
 renderWeekCal();renderMonthCal();
 updateTimerUI();
+if(S.timerSec===25*60)selectPreset25();
 resumeBackgroundTimer();
 checkURLParams();
 document.getElementById('p-settimana').classList.add('plan-locked');
