@@ -356,12 +356,38 @@ body{
   <div id="weekCalList"></div>
 </div>
 
+<!-- ═══ IMPOSTAZIONI ═══ -->
+<div class="page" id="p-impostazioni">
+  <div class="page-header">Personalizza</div>
+  <div class="page-title">Impostazioni ⚙️</div>
+  <div class="card">
+    <div class="card-title">🎨 Tema colore</div>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6;">Secondo la psicologia dei colori ogni tema favorisce stati mentali diversi. Scegli quello che senti più adatto.</p>
+    <div id="themePicker"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">⚠️ Dati</div>
+    <button onclick="resetAllData()" style="width:100%;background:rgba(231,76,60,.1);border:1.5px solid var(--red);border-radius:14px;color:var(--red);padding:13px;font-size:14px;font-weight:600;cursor:pointer;">🗑 Ripristina tutti i dati ai default</button>
+    <p style="font-size:11px;color:var(--text2);margin-top:8px;text-align:center;">Cancella tutto e riparte con i dati di esempio</p>
+  </div>
+  <div class="card" style="opacity:.5;pointer-events:none;">
+    <div class="card-title">🚧 In arrivo</div>
+    <div style="font-size:13px;color:var(--text2);line-height:2;">
+      👤 Account &amp; Sincronizzazione<br>
+      🌐 Lingua (IT / EN)<br>
+      🔔 Notifiche push<br>
+      ☁️ Backup su cloud
+    </div>
+  </div>
+</div>
+
 <!-- TAB BAR -->
 <div class="tab-bar">
   <button class="tab-btn active" onclick="showTab('mente',this)"><span class="ti">🧠</span>Mente</button>
   <button class="tab-btn" onclick="showTab('oggi',this)"><span class="ti">🎯</span>Oggi</button>
   <button class="tab-btn" onclick="showTab('aree',this)"><span class="ti">🗂</span>Aree</button>
   <button class="tab-btn" onclick="showTab('settimana',this)"><span class="ti">📅</span>Piano</button>
+  <button class="tab-btn" onclick="showTab('impostazioni',this);renderThemePicker()"><span class="ti">⚙️</span>Impost.</button>
 </div>
 
 <!-- FULLSCREEN VIEWER -->
@@ -428,24 +454,32 @@ const BOOK_AFFS=[
   {text:"La qualità della vita dipende da ciò che accade nella nostra mente mentre lavoriamo, amiamo o semplicemente guardiamo il cielo.",author:"Mihaly Csikszentmihalyi",book:"Flow",link:"https://www.amazon.it/s?k=csikszentmihalyi+flow"},
   {text:"Ogni minuto speso a pianificare fa risparmiare dieci minuti nell'esecuzione. Un'ora di pianificazione può farti guadagnare una giornata intera.",author:"Brian Tracy",book:"Mangia quella Rana!",link:"https://www.amazon.it/s?k=brian+tracy+mangia+quella+rana"}
 ];
-const DEF_MOR=[{id:'m1',label:'Lettura Bibbia (10 min)'},{id:'m2',label:'Preghiera'},{id:'m3',label:'Leggi 3 affermazioni'},{id:'m4',label:'Denti + viso'},{id:'m5',label:'Colazione vegan raw'},{id:'m6',label:'Fai il letto'},{id:'m7',label:'Pianifica il task principale del giorno'}];
-const DEF_EVE=[{id:'e1',label:'Scrivi cosa hai fatto oggi'},{id:'e2',label:'Pianifica task principale di domani'},{id:'e3',label:'Lettura (Brian Tracy o altro)'},{id:'e4',label:'No telefono 30 min prima di dormire'},{id:'e5',label:'Innaffia piante'}];
+const DEF_MOR=[{id:'m1',label:'Momento di silenzio o meditazione (5 min)'},{id:'m2',label:'Fai il letto'},{id:'m3',label:'Colazione sana'},{id:'m4',label:'Leggi una citazione dal libro'},{id:'m5',label:'Pianifica il task principale del giorno'}];
+const DEF_EVE=[{id:'e1',label:'Scrivi 3 cose positive accadute oggi'},{id:'e2',label:'Pianifica il task principale di domani'},{id:'e3',label:'Lettura (20 min)'},{id:'e4',label:'Niente schermo 30 min prima di dormire'}];
 const DEF_AREAS=[
-  {id:'casa',name:'Possedimenti Fisici',emoji:'🏠',badge:'b-casa',tasks:[{id:'c1',name:"Sistemare garage: pavimento in gomma + scaffali metallo"},{id:'c2',name:"Diagnostica scooter — smonta carburatore"},{id:'c3',name:"Sigilla bagno con silicone (wc + bidet)"},{id:'c4',name:"Airbnb: sassi giardino e vasi in legno fai-da-te"},{id:'c5',name:"Sistemare foglio calcolo Airbnb"},{id:'c6',name:"Macchina: cambia tutti i fluidi e catena"}]},
-  {id:'spirito',name:'Spiritualità',emoji:'🙏',badge:'b-spirito',tasks:[{id:'s1',name:"Studio biblico + adunanze settimanali"},{id:'s2',name:"Lettura Bibbia ogni mattina"},{id:'s3',name:"Preghiera quotidiana"},{id:'s4',name:"Servizio ministeriale regolare"},{id:'s5',name:"Studio personale approfondito"}]},
-  {id:'lavoro',name:'Lavoro',emoji:'💼',badge:'b-lavoro',tasks:[{id:'l1',name:"Setup riprese: LED + cartone sfondo + telefono dall'alto"},{id:'l2',name:"Primo video Lego pubblicato su YouTube"},{id:'l3',name:"Imparare DaVinci Resolve: tutorial base editing video"},{id:'l4',name:"Airbnb: ottimizzare sistema pulizie e cambi"},{id:'l5',name:"Trade Republic: cultura generale investimenti dividendi"}]},
-  {id:'svago',name:'Svago',emoji:'🌿',badge:'b-svago',tasks:[{id:'v1',name:"Solar bath quotidiano (10-15 min)"},{id:'v2',name:"Gite al lago e in natura"},{id:'v3',name:"Shop legno garage: piccoli oggetti"},{id:'v4',name:"Canale vegan fitness (progetto futuro)"}]},
-  {id:'skills',name:'Skills',emoji:'⚡',badge:'b-skills',tasks:[{id:'k1',name:"Inglese: 2 minuti di speaking registrato ogni giorno"},{id:'k2',name:"Palestra + calistenia 3x a settimana (l-sit, stretching)"},{id:'k3',name:"Nuoto / piscina regolare"},{id:'k4',name:"Brian Tracy Time Management: applica un capitolo alla volta"},{id:'k5',name:"Cucina vegana crudista: lista 10 piatti facili"},{id:'k6',name:"Giapponese: 5 minuti al giorno"}]},
-  {id:'salute',name:'Salute',emoji:'🏥',badge:'b-salute',tasks:[]},
-  {id:'famiglia',name:'Famiglia',emoji:'👨‍👩‍👧',badge:'b-famiglia',tasks:[]}
+  {id:'casa',name:'Possedimenti Fisici',emoji:'🏠',badge:'b-casa',tasks:[{id:'c1',name:"Esempio: riordinare e organizzare un'area della casa"}]},
+  {id:'spirito',name:'Spiritualità',emoji:'🙏',badge:'b-spirito',tasks:[{id:'s1',name:"Esempio: pratica spirituale o meditazione quotidiana"}]},
+  {id:'lavoro',name:'Lavoro',emoji:'💼',badge:'b-lavoro',tasks:[{id:'l1',name:"Esempio: completare il progetto principale della settimana"}]},
+  {id:'svago',name:'Svago',emoji:'🌿',badge:'b-svago',tasks:[{id:'v1',name:"Esempio: un'attività piacevole da fare questa settimana"}]},
+  {id:'skills',name:'Skills',emoji:'⚡',badge:'b-skills',tasks:[{id:'k1',name:"Esempio: studiare o praticare una nuova competenza (20 min/giorno)"}]},
+  {id:'salute',name:'Salute',emoji:'🏥',badge:'b-salute',tasks:[{id:'h1',name:"Esempio: attività fisica almeno 3 volte questa settimana"}]},
+  {id:'famiglia',name:'Famiglia',emoji:'👨‍👩‍👧',badge:'b-famiglia',tasks:[{id:'f1',name:"Esempio: momento di qualità con un familiare"}]}
 ];
-const DEF_WEEK_TASKS=[{id:'w1',name:'Palestra 3 volte',done:false},{id:'w2',name:'Inglese: 4 registrazioni da 2 min',done:false},{id:'w3',name:'Studio biblico + adunanza',done:false},{id:'w4',name:'3 pasti con verdure crude',done:false}];
-const DEF_MONTH_TASKS=[{id:'mo1',name:'Gita al lago o kayak',done:false},{id:'mo2',name:'Video Lego pubblicato',done:false},{id:'mo3',name:'Progetto legno in garage',done:false}];
-const DEF_YEAR_TASKS=[{id:'y1',name:'Garage sistemato',done:false},{id:'y2',name:'Canale YouTube Lego attivo',done:false},{id:'y3',name:'Scooter riparato',done:false},{id:'y4',name:"Inglese: fluency conversazionale",done:false},{id:'y5',name:'L-sit tenuto 10 secondi',done:false}];
+const DEF_WEEK_TASKS=[{id:'w1',name:'Attività fisica almeno 2 volte',done:false},{id:'w2',name:'Avanzare sul progetto principale',done:false},{id:'w3',name:'Tempo di qualità per sé stessi',done:false}];
+const DEF_MONTH_TASKS=[{id:'mo1',name:'Completare un obiettivo importante',done:false},{id:'mo2',name:'Imparare qualcosa di nuovo',done:false}];
+const DEF_YEAR_TASKS=[{id:'y1',name:'Raggiungere un traguardo professionale',done:false},{id:'y2',name:'Migliorare salute e benessere',done:false},{id:'y3',name:'Sviluppare una nuova competenza',done:false}];
 
+const THEMES={
+  oceano:{name:'Oceano',desc:'Calma e focus — il più studiato per la produttività',emoji:'🌊',bg:'#070d1a',surface:'#0d1626',surface2:'#132034',accent:'#3b82f6',accent2:'#60d0ff',grad1:'#1a4fc4',grad2:'#0ea5e9'},
+  viola:{name:'Viola',desc:'Creatività e introspezione',emoji:'💜',bg:'#0d0d14',surface:'#16161f',surface2:'#1e1e2a',accent:'#7c5cfc',accent2:'#fc5c7d',grad1:'#5c3ffc',grad2:'#fc3f7d'},
+  foresta:{name:'Foresta',desc:'Rilassamento e chiarezza mentale — riduce il cortisolo',emoji:'🌲',bg:'#080f08',surface:'#0f1a0f',surface2:'#162416',accent:'#4ade80',accent2:'#86efac',grad1:'#166534',grad2:'#16a34a'},
+  teal:{name:'Teal',desc:'Equilibrio tra calma e lucidità',emoji:'🌿',bg:'#050f12',surface:'#0a1a1f',surface2:'#0f2530',accent:'#2dd4bf',accent2:'#67e8f9',grad1:'#0f766e',grad2:'#06b6d4'},
+  ambra:{name:'Ambra',desc:'Calore e radicamento — ideale la sera',emoji:'🌙',bg:'#110e08',surface:'#1a160e',surface2:'#241f14',accent:'#f59e0b',accent2:'#fbbf24',grad1:'#92400e',grad2:'#d97706'},
+};
 const LS={g:(k,d)=>{try{const v=localStorage.getItem(k);return v!==null?JSON.parse(v):d;}catch{return d;}},s:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch{}}};
 const S={
   custAff:LS.g('custAff',[]),affMode:'daily',affDayKey:LS.g('affDayKey',''),affDayIdx:LS.g('affDayIdx',0),affNavIdx:0,showCustAff:false,
+  theme:LS.g('theme','oceano'),
   streak:LS.g('streak',0),streakD:LS.g('streakD',''),
   vb:LS.g('vb',[]),fsI:0,
   morItems:LS.g('morItems',DEF_MOR),eveItems:LS.g('eveItems',DEF_EVE),
@@ -817,9 +851,36 @@ function checkURLParams(){
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 document.querySelectorAll('.modal-overlay').forEach(m=>{m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');});});
 
+// ── Temi ──
+function applyTheme(name){
+  const t=THEMES[name]||THEMES.oceano;
+  const r=document.documentElement.style;
+  r.setProperty('--bg',t.bg);r.setProperty('--surface',t.surface);r.setProperty('--surface2',t.surface2);
+  r.setProperty('--accent',t.accent);r.setProperty('--accent2',t.accent2);
+  document.querySelectorAll('.aff-card').forEach(el=>{el.style.background=`linear-gradient(135deg,${t.grad1},${t.grad2})`;});
+  S.theme=name;LS.s('theme',name);
+  renderThemePicker();
+}
+function renderThemePicker(){
+  const el=document.getElementById('themePicker');if(!el)return;
+  el.innerHTML=Object.entries(THEMES).map(([key,t])=>{
+    const sel=S.theme===key;
+    return`<div onclick="applyTheme('${key}')" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;margin-bottom:8px;border:2px solid ${sel?'var(--accent)':'#2a2a3a'};cursor:pointer;transition:border-color .2s;">
+      <span style="font-size:24px;">${t.emoji}</span>
+      <div style="flex:1;"><div style="font-size:15px;font-weight:700;${sel?'color:var(--accent);':''}">${t.name}${sel?' ✓':''}</div><div style="font-size:12px;color:var(--text2);margin-top:2px;">${t.desc}</div></div>
+      <div style="width:20px;height:20px;border-radius:50%;background:${t.accent};box-shadow:0 0 10px ${t.accent}66;flex-shrink:0;"></div>
+    </div>`;
+  }).join('');
+}
+function resetAllData(){
+  if(!confirm('Sei sicuro? Tutti i dati verranno eliminati e resettati agli esempi di default.'))return;
+  localStorage.clear();location.reload();
+}
+
 // ── Init ──
 migrateData();
 checkResets();
+applyTheme(S.theme);
 renderAff();startAffTimer();renderStreak();renderVB();renderRoutine();renderToday();renderAree();
 renderPeriod('week','weekPList');renderPeriod('month','monthPList');renderPeriod('year','yearPList');
 renderWeekCal();renderMonthCal();
