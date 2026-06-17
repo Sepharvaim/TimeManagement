@@ -30,9 +30,12 @@ body{
   border-top:1px solid #2a2a3a;display:flex;z-index:100;
   padding:8px 0 max(env(safe-area-inset-bottom,0px),20px);
 }
-.tab-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:none;color:var(--text2);font-size:10px;font-weight:500;cursor:pointer;padding:4px 0;transition:color .2s;}
-.tab-btn .ti{font-size:24px;line-height:1;}
+.tab-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:none;color:var(--text2);font-size:10px;font-weight:500;cursor:pointer;padding:4px 0;transition:color .2s;position:relative;}
+.tab-btn::after{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:0;height:3px;background:var(--accent);border-radius:0 0 4px 4px;transition:width .25s;}
+.tab-btn.active::after{width:32px;}
+.tab-btn .ti{font-size:24px;line-height:1;transition:transform .2s;}
 .tab-btn.active{color:var(--accent);}
+.tab-btn.active .ti{transform:scale(1.12);}
 .page{display:none;padding:0 16px 48px;}
 .page.active{display:block;}
 .page-header{padding:20px 0 4px;font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:1.5px;}
@@ -656,6 +659,9 @@ function resetDay(){if(!confirm('Azzerare i task di oggi e le routine?'))return;
 
 // ── Timer ──
 let audioCtx=null;
+let scheduledNodes=[];
+const MELODY=[[523.25,0,0.22,0.38],[659.25,0.22,0.22,0.38],[783.99,0.44,0.22,0.38],[1046.5,0.66,0.6,0.45],[523.25,0.66,0.6,0.2],[783.99,0.66,0.6,0.2]];
+
 function unlockAudio(){
   if(audioCtx)return;
   try{
@@ -664,26 +670,46 @@ function unlockAudio(){
     s.buffer=b;s.connect(audioCtx.destination);s.start(0);
   }catch(e){}
 }
-function _note(ctx,freq,start,dur,vol=0.38){
-  const o=ctx.createOscillator();const g=ctx.createGain();
-  o.type='sine';o.connect(g);g.connect(ctx.destination);
-  o.frequency.value=freq;
-  g.gain.setValueAtTime(vol,start);
-  g.gain.exponentialRampToValueAtTime(0.0001,start+dur);
-  o.start(start);o.stop(start+dur+0.05);
+
+function cancelScheduledMelody(){
+  scheduledNodes.forEach(o=>{try{o.stop(0);}catch(e){}});
+  scheduledNodes=[];
 }
+
+// Chiama SOLO da un gesto utente (click). Schedula la melodia inSeconds secondi nel futuro.
+function scheduleTimerMelody(inSeconds){
+  cancelScheduledMelody();
+  if(!audioCtx){try{audioCtx=new(window.AudioContext||window.webkitAudioContext)();}catch(e){return;}}
+  const go=()=>{
+    const t=audioCtx.currentTime+inSeconds;
+    MELODY.forEach(([freq,delay,dur,vol])=>{
+      const o=audioCtx.createOscillator();const g=audioCtx.createGain();
+      o.type='sine';o.connect(g);g.connect(audioCtx.destination);
+      o.frequency.value=freq;
+      g.gain.setValueAtTime(vol,t+delay);
+      g.gain.exponentialRampToValueAtTime(0.0001,t+delay+dur);
+      o.start(t+delay);o.stop(t+delay+dur+0.1);
+      scheduledNodes.push(o);
+    });
+  };
+  if(audioCtx.state==='suspended'){audioCtx.resume().then(go);}else{go();}
+}
+
+// Fallback: usato quando il timer scade da background (Android) o come backup
 async function playMelody(){
+  if(navigator.vibrate)navigator.vibrate([200,100,200,100,400]);
   try{
     if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();
     if(audioCtx.state==='suspended')await audioCtx.resume();
     const t=audioCtx.currentTime;
-    // Melodia: Do Mi Sol Do (arpeggio maggiore ascendente + accordo finale)
-    _note(audioCtx,523.25,t+0.0,0.22);        // C5
-    _note(audioCtx,659.25,t+0.22,0.22);       // E5
-    _note(audioCtx,783.99,t+0.44,0.22);       // G5
-    _note(audioCtx,1046.5,t+0.66,0.6,0.45);  // C6 — nota lunga
-    _note(audioCtx,523.25,t+0.66,0.6,0.2);   // C5 armonia
-    _note(audioCtx,783.99,t+0.66,0.6,0.2);   // G5 armonia
+    MELODY.forEach(([freq,delay,dur,vol])=>{
+      const o=audioCtx.createOscillator();const g=audioCtx.createGain();
+      o.type='sine';o.connect(g);g.connect(audioCtx.destination);
+      o.frequency.value=freq;
+      g.gain.setValueAtTime(vol,t+delay);
+      g.gain.exponentialRampToValueAtTime(0.0001,t+delay+dur);
+      o.start(t+delay);o.stop(t+delay+dur+0.1);
+    });
   }catch(e){}
 }
 function showTimerToast(msg){
@@ -701,11 +727,13 @@ function updateTimerUI(){const m=String(Math.floor(S.timerSec/60)).padStart(2,'0
 function timerToggle(){
   if(S.timerOn){
     clearInterval(S.timerRef);S.timerOn=false;
+    cancelScheduledMelody();
     document.getElementById('playBtn').textContent='▶ Start';
     document.getElementById('playBtn').className='tbtn tbtn-play';
     LS.s('timerRunning',null);
   }else{
     S.timerOn=true;
+    scheduleTimerMelody(S.timerSec); // schedula dal gesto utente (iOS-safe)
     document.getElementById('playBtn').textContent='⏸ Pausa';
     document.getElementById('playBtn').className='tbtn tbtn-pause';
     LS.s('timerRunning',{startTs:Date.now(),secLeft:S.timerSec});
@@ -715,7 +743,7 @@ function timerToggle(){
         document.getElementById('playBtn').textContent='▶ Start';
         document.getElementById('playBtn').className='tbtn tbtn-play';
         LS.s('timerRunning',null);
-        playMelody();
+        playMelody(); // backup per Android/browser che non mantengono scheduled audio
         showTimerToast('⏰ Tempo scaduto! Fai una pausa, poi riparti.');
         return;
       }
@@ -723,8 +751,8 @@ function timerToggle(){
     },1000);
   }
 }
-function setTimer(min,btn){clearInterval(S.timerRef);S.timerOn=false;S.timerSec=min*60;LS.s('timerSec',S.timerSec);LS.s('timerRunning',null);document.getElementById('playBtn').textContent='▶ Start';document.getElementById('playBtn').className='tbtn tbtn-play';updateTimerUI();document.querySelectorAll('.preset').forEach(b=>b.classList.remove('sel'));if(btn)btn.classList.add('sel');}
-function timerReset(){clearInterval(S.timerRef);S.timerOn=false;S.timerSec=25*60;LS.s('timerSec',S.timerSec);LS.s('timerRunning',null);document.getElementById('playBtn').textContent='▶ Start';document.getElementById('playBtn').className='tbtn tbtn-play';updateTimerUI();}
+function setTimer(min,btn){cancelScheduledMelody();clearInterval(S.timerRef);S.timerOn=false;S.timerSec=min*60;LS.s('timerSec',S.timerSec);LS.s('timerRunning',null);document.getElementById('playBtn').textContent='▶ Start';document.getElementById('playBtn').className='tbtn tbtn-play';updateTimerUI();document.querySelectorAll('.preset').forEach(b=>b.classList.remove('sel'));if(btn)btn.classList.add('sel');}
+function timerReset(){cancelScheduledMelody();clearInterval(S.timerRef);S.timerOn=false;S.timerSec=25*60;LS.s('timerSec',S.timerSec);LS.s('timerRunning',null);document.getElementById('playBtn').textContent='▶ Start';document.getElementById('playBtn').className='tbtn tbtn-play';updateTimerUI();}
 function openManualTimer(){const min=parseInt(prompt('Minuti timer:','30'));if(isNaN(min)||min<=0)return;clearInterval(S.timerRef);S.timerOn=false;S.timerSec=min*60;LS.s('timerSec',S.timerSec);LS.s('timerRunning',null);document.getElementById('playBtn').textContent='▶ Start';document.getElementById('playBtn').className='tbtn tbtn-play';updateTimerUI();document.querySelectorAll('.preset').forEach(b=>b.classList.remove('sel'));}
 
 // Riprendi timer da background
