@@ -15,7 +15,7 @@
   --text:#eeeef5;--text2:#8888aa;
   color-scheme:dark;
 }
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
 html,body{height:100%;}
 body{
   background:var(--bg);color:var(--text);
@@ -247,14 +247,6 @@ body{
       <button class="ibtn" onclick="addRoutineItem('eve')">+</button>
     </div>
   </div>
-  <div class="card" id="custAffSection" style="display:none;">
-    <div class="card-title" onclick="toggleCustAff()" style="cursor:pointer;">✏️ Le mie affermazioni <span style="float:right;font-size:16px;" id="custAffChev">›</span></div>
-    <div id="custAffList"></div>
-    <div class="irow" style="margin-top:8px;">
-      <input class="iinput" id="newAffInput" placeholder="Scrivi la tua affermazione..." onkeydown="if(event.key==='Enter')addAffirmation()">
-      <button class="ibtn" onclick="addAffirmation()">+</button>
-    </div>
-  </div>
 </div>
 
 <!-- ═══ OGGI ═══ -->
@@ -366,6 +358,15 @@ body{
     <div id="themePicker"></div>
   </div>
   <div class="card">
+    <div class="card-title">✏️ Le mie affermazioni</div>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.6;">Aggiungi qui le tue affermazioni personali. Attivale con il bottone nella card principale.</p>
+    <div id="custAffList"></div>
+    <div class="irow" style="margin-top:10px;">
+      <input class="iinput" id="newAffInput" placeholder="Scrivi la tua affermazione..." onkeydown="if(event.key==='Enter')addAffirmation()">
+      <button class="ibtn" onclick="addAffirmation()">+</button>
+    </div>
+  </div>
+  <div class="card">
     <div class="card-title">⚠️ Dati</div>
     <button onclick="resetAllData()" style="width:100%;background:rgba(231,76,60,.1);border:1.5px solid var(--red);border-radius:14px;color:var(--red);padding:13px;font-size:14px;font-weight:600;cursor:pointer;">🗑 Ripristina tutti i dati ai default</button>
     <p style="font-size:11px;color:var(--text2);margin-top:8px;text-align:center;">Cancella tutto e riparte con i dati di esempio</p>
@@ -387,7 +388,7 @@ body{
   <button class="tab-btn" onclick="showTab('oggi',this)"><span class="ti">🎯</span>Oggi</button>
   <button class="tab-btn" onclick="showTab('aree',this)"><span class="ti">🗂</span>Aree</button>
   <button class="tab-btn" onclick="showTab('settimana',this)"><span class="ti">📅</span>Piano</button>
-  <button class="tab-btn" onclick="showTab('impostazioni',this);renderThemePicker()"><span class="ti">⚙️</span>Impost.</button>
+  <button class="tab-btn" onclick="showTab('impostazioni',this);renderThemePicker();renderCustAffs()"><span class="ti">⚙️</span>Impost.</button>
 </div>
 
 <!-- FULLSCREEN VIEWER -->
@@ -470,11 +471,11 @@ const DEF_MONTH_TASKS=[{id:'mo1',name:'Completare un obiettivo importante',done:
 const DEF_YEAR_TASKS=[{id:'y1',name:'Raggiungere un traguardo professionale',done:false},{id:'y2',name:'Migliorare salute e benessere',done:false},{id:'y3',name:'Sviluppare una nuova competenza',done:false}];
 
 const THEMES={
-  oceano:{name:'Oceano',desc:'Calma e focus — il più studiato per la produttività',emoji:'🌊',bg:'#070d1a',surface:'#0d1626',surface2:'#132034',accent:'#3b82f6',accent2:'#60d0ff',grad1:'#1a4fc4',grad2:'#0ea5e9'},
-  viola:{name:'Viola',desc:'Creatività e introspezione',emoji:'💜',bg:'#0d0d14',surface:'#16161f',surface2:'#1e1e2a',accent:'#7c5cfc',accent2:'#fc5c7d',grad1:'#5c3ffc',grad2:'#fc3f7d'},
-  foresta:{name:'Foresta',desc:'Rilassamento e chiarezza mentale — riduce il cortisolo',emoji:'🌲',bg:'#080f08',surface:'#0f1a0f',surface2:'#162416',accent:'#4ade80',accent2:'#86efac',grad1:'#166534',grad2:'#16a34a'},
-  teal:{name:'Teal',desc:'Equilibrio tra calma e lucidità',emoji:'🌿',bg:'#050f12',surface:'#0a1a1f',surface2:'#0f2530',accent:'#2dd4bf',accent2:'#67e8f9',grad1:'#0f766e',grad2:'#06b6d4'},
-  ambra:{name:'Ambra',desc:'Calore e radicamento — ideale la sera',emoji:'🌙',bg:'#110e08',surface:'#1a160e',surface2:'#241f14',accent:'#f59e0b',accent2:'#fbbf24',grad1:'#92400e',grad2:'#d97706'},
+  oceano:{name:'Oceano',desc:'Calma e focus — il più studiato per la produttività',emoji:'🌊',bg:'#0d2040',surface:'#163055',surface2:'#1e3e6a',accent:'#60a5fa',accent2:'#93c5fd',text2:'#8aabcc',grad1:'#1a4fc4',grad2:'#0ea5e9'},
+  viola:{name:'Viola',desc:'Creatività e introspezione',emoji:'💜',bg:'#160f28',surface:'#221840',surface2:'#2e2055',accent:'#a78bfa',accent2:'#f0abfc',text2:'#9980cc',grad1:'#5c3ffc',grad2:'#c026d3'},
+  foresta:{name:'Foresta',desc:'Rilassamento e chiarezza mentale — riduce il cortisolo',emoji:'🌲',bg:'#0e2010',surface:'#163018',surface2:'#1e4020',accent:'#4ade80',accent2:'#86efac',text2:'#7aaa7a',grad1:'#166534',grad2:'#16a34a'},
+  teal:{name:'Teal',desc:'Equilibrio tra calma e lucidità',emoji:'🌿',bg:'#082830',surface:'#0e3840',surface2:'#154852',accent:'#2dd4bf',accent2:'#67e8f9',text2:'#6aaaaa',grad1:'#0f766e',grad2:'#06b6d4'},
+  ambra:{name:'Ambra',desc:'Calore e radicamento — ideale la sera',emoji:'🌙',bg:'#201408',surface:'#301c0e',surface2:'#402818',accent:'#fbbf24',accent2:'#fde68a',text2:'#bbaa66',grad1:'#92400e',grad2:'#d97706'},
 };
 const LS={g:(k,d)=>{try{const v=localStorage.getItem(k);return v!==null?JSON.parse(v):d;}catch{return d;}},s:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch{}}};
 const S={
@@ -538,11 +539,14 @@ function showTab(name,btn){
 
 // ── Affermazioni ──
 let affAutoTimer=null;
+function getAffArr(){return S.showCustAff?S.custAff:BOOK_AFFS;}
 function startAffTimer(){
   clearInterval(affAutoTimer);
-  if(BOOK_AFFS.length>1)affAutoTimer=setInterval(()=>{S.affNavIdx=(S.affNavIdx+1)%BOOK_AFFS.length;renderAff();},5000);
+  const arr=getAffArr();
+  if(arr.length>1)affAutoTimer=setInterval(()=>{S.affNavIdx=(S.affNavIdx+1)%arr.length;renderAff();},10000);
 }
 function getTodayAffIdx(){
+  if(S.showCustAff)return;
   const key=new Date().toDateString();
   if(S.affDayKey!==key){
     const d=new Date();S.affDayIdx=Math.floor((d-new Date(d.getFullYear(),0,0))/864e5)%BOOK_AFFS.length;
@@ -552,30 +556,43 @@ function getTodayAffIdx(){
 }
 function renderAff(){
   getTodayAffIdx();
-  const idx=((S.affNavIdx%BOOK_AFFS.length)+BOOK_AFFS.length)%BOOK_AFFS.length;
-  const aff=BOOK_AFFS[idx];
-  document.getElementById('affText').textContent=aff.text;
-  document.getElementById('affSource').textContent='— '+aff.author;
-  document.getElementById('affBook').innerHTML=`<a href="${aff.link}" target="_blank" rel="noopener" style="color:rgba(255,255,255,.8);font-size:13px;text-decoration:none;">📚 ${aff.book} →</a>`;
-  document.getElementById('affDots').innerHTML=BOOK_AFFS.map((_,i)=>`<div class="aff-dot${i===idx?' on':''}"></div>`).join('');
+  const arr=getAffArr();
+  const btn=document.getElementById('affModeBtn');
+  if(btn){btn.style.background=S.showCustAff?'rgba(255,255,255,.3)':'rgba(255,255,255,.15)';btn.style.color=S.showCustAff?'#fff':'rgba(255,255,255,.55)';btn.style.borderColor=S.showCustAff?'rgba(255,255,255,.7)':'rgba(255,255,255,.3)';}
+  if(!arr.length){
+    document.getElementById('affText').textContent=S.showCustAff?'Nessuna affermazione — aggiungile in Impostazioni ⚙️':'';
+    document.getElementById('affSource').textContent='';
+    document.getElementById('affBook').innerHTML='';
+    document.getElementById('affDots').innerHTML='';
+    return;
+  }
+  const idx=((S.affNavIdx%arr.length)+arr.length)%arr.length;
+  if(S.showCustAff){
+    document.getElementById('affText').textContent=arr[idx];
+    document.getElementById('affSource').textContent='✏️ La mia affermazione';
+    document.getElementById('affBook').innerHTML='';
+  }else{
+    const aff=arr[idx];
+    document.getElementById('affText').textContent=aff.text;
+    document.getElementById('affSource').textContent='— '+aff.author;
+    document.getElementById('affBook').innerHTML=`<a href="${aff.link}" target="_blank" rel="noopener" style="color:rgba(255,255,255,.8);font-size:13px;text-decoration:none;">📚 ${aff.book} →</a>`;
+  }
+  document.getElementById('affDots').innerHTML=arr.map((_,i)=>`<div class="aff-dot${i===idx?' on':''}"></div>`).join('');
 }
-function nextAff(){S.affNavIdx=(S.affNavIdx+1)%BOOK_AFFS.length;renderAff();startAffTimer();}
-function prevAff(){S.affNavIdx=(S.affNavIdx-1+BOOK_AFFS.length)%BOOK_AFFS.length;renderAff();startAffTimer();}
+function nextAff(){const arr=getAffArr();S.affNavIdx=(S.affNavIdx+1)%arr.length;renderAff();startAffTimer();}
+function prevAff(){const arr=getAffArr();S.affNavIdx=(S.affNavIdx-1+arr.length)%arr.length;renderAff();startAffTimer();}
 function toggleCustAff(){
   S.showCustAff=!S.showCustAff;
-  const sec=document.getElementById('custAffSection');
-  const btn=document.getElementById('affModeBtn');
-  if(S.showCustAff){
-    sec.style.display='block';
-    btn.style.background='rgba(255,255,255,.3)';btn.style.color='#fff';btn.style.borderColor='rgba(255,255,255,.7)';
-    renderCustAffs();
-  }else{
-    sec.style.display='none';
-    btn.style.background='rgba(255,255,255,.15)';btn.style.color='rgba(255,255,255,.55)';btn.style.borderColor='rgba(255,255,255,.3)';
-  }
+  S.affNavIdx=0;
+  renderAff();startAffTimer();
 }
-function renderCustAffs(){const el=document.getElementById('custAffList');if(!S.custAff.length){el.innerHTML='<div style="color:var(--text2);font-size:13px;padding:8px 0">Nessuna affermazione — aggiungine una 💪</div>';return;}el.innerHTML=S.custAff.map((a,i)=>`<div style="display:flex;align-items:flex-start;gap:8px;padding:10px 0;border-bottom:1px solid #1e1e2e;"><div style="flex:1;font-size:14px;line-height:1.5;">${a}</div><button onclick="delCustAff(${i})" style="background:none;border:none;color:var(--text2);font-size:14px;cursor:pointer;padding:2px 4px;flex-shrink:0;">✕</button></div>`).join('');}
-function delCustAff(i){S.custAff.splice(i,1);LS.s('custAff',S.custAff);renderCustAffs();}
+function renderCustAffs(){
+  const el=document.getElementById('custAffList');
+  if(!el)return;
+  if(!S.custAff.length){el.innerHTML='<div style="color:var(--text2);font-size:13px;padding:8px 0">Nessuna affermazione — aggiungine una 💪</div>';return;}
+  el.innerHTML=S.custAff.map((a,i)=>`<div style="display:flex;align-items:flex-start;gap:8px;padding:10px 0;border-bottom:1px solid #1e1e2e;"><div style="flex:1;font-size:14px;line-height:1.5;">${a}</div><button onclick="delCustAff(${i})" style="background:none;border:none;color:var(--text2);font-size:14px;cursor:pointer;padding:2px 4px;flex-shrink:0;">✕</button></div>`).join('');
+}
+function delCustAff(i){S.custAff.splice(i,1);LS.s('custAff',S.custAff);renderCustAffs();if(S.showCustAff){S.affNavIdx=0;renderAff();startAffTimer();}}
 function addAffirmation(){const inp=document.getElementById('newAffInput');const t=inp.value.trim();if(!t)return;S.custAff.push(t);LS.s('custAff',S.custAff);inp.value='';renderCustAffs();}
 
 // ── Streak ──
@@ -857,6 +874,7 @@ function applyTheme(name){
   const r=document.documentElement.style;
   r.setProperty('--bg',t.bg);r.setProperty('--surface',t.surface);r.setProperty('--surface2',t.surface2);
   r.setProperty('--accent',t.accent);r.setProperty('--accent2',t.accent2);
+  if(t.text2)r.setProperty('--text2',t.text2);
   document.querySelectorAll('.aff-card').forEach(el=>{el.style.background=`linear-gradient(135deg,${t.grad1},${t.grad2})`;});
   S.theme=name;LS.s('theme',name);
   renderThemePicker();
