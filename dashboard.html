@@ -662,11 +662,21 @@ function resetDay(){if(!confirm('Azzerare i task di oggi e le routine?'))return;
 // sblocca <audio> element al primo tap, poi suona da qualsiasi contesto (timer, background).
 let melodyAudio=null;
 let melodyReady=false;
-const MELODY=[[523.25,0,0.22,0.38],[659.25,0.22,0.22,0.38],[783.99,0.44,0.22,0.38],[1046.5,0.66,0.6,0.45],[523.25,0.66,0.6,0.2],[783.99,0.66,0.6,0.2]];
+const MELODY=[
+  [659.25, 0.0,  0.3, 0.75],  // E5
+  [783.99, 0.3,  0.3, 0.75],  // G5
+  [1046.5, 0.6,  0.3, 0.75],  // C6
+  [1318.5, 0.9,  0.35,0.75],  // E6
+  [1046.5, 1.25, 0.3, 0.65],  // C6 discesa
+  [783.99, 1.55, 0.3, 0.65],  // G5 discesa
+  [523.25, 1.85, 1.0, 0.85],  // C5 finale — nota lunga forte
+  [783.99, 1.85, 1.0, 0.55],  // G5 armonia
+  [1046.5, 1.85, 1.0, 0.45],  // C6 armonia
+];
 
 async function prerenderMelody(){
   try{
-    const sr=22050,len=Math.ceil(sr*1.6);
+    const sr=22050,len=Math.ceil(sr*3.2);
     const off=new OfflineAudioContext(1,len,sr);
     MELODY.forEach(([freq,delay,dur,vol])=>{
       const o=off.createOscillator();const g=off.createGain();
