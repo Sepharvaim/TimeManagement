@@ -208,6 +208,37 @@ body{
 .ts-item{padding:13px 14px;background:var(--surface2);border-radius:14px;margin-bottom:8px;cursor:pointer;border:2px solid transparent;transition:border-color .15s;}
 .ts-item:active{border-color:var(--accent);}
 .ts-item-name{font-size:15px;font-weight:600;}
+/* ── Progetti ── */
+.proj-wrap{margin-top:14px;padding-top:12px;border-top:1px solid #1e1e2e;}
+.proj-lbl{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;}
+.proj-add-btn{font-size:12px;font-weight:700;color:var(--accent);background:rgba(124,92,252,.12);border:1px solid var(--accent);border-radius:8px;padding:4px 10px;cursor:pointer;}
+.proj-card{background:rgba(124,92,252,.06);border:1px solid #2a2a3a;border-radius:14px;margin-bottom:8px;overflow:hidden;}
+.proj-head{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;user-select:none;}
+.proj-info{flex:1;min-width:0;}
+.proj-name-txt{font-size:15px;font-weight:700;}
+.proj-meta{font-size:11px;color:var(--text2);margin-top:2px;}
+.proj-meta.stale{color:var(--orange);}
+.proj-chev{color:var(--text2);font-size:16px;transition:transform .25s;flex-shrink:0;}
+.proj-chev.open{transform:rotate(90deg);}
+.proj-body{display:none;padding:0 14px 14px;}
+.proj-body.open{display:block;}
+.proj-goal-lbl{font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:10px;padding:8px 10px;background:rgba(124,92,252,.08);border-radius:10px;border-left:3px solid var(--accent);}
+.pt-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #1a1a28;}
+.pt-row:last-of-type{border-bottom:none;}
+.pt-chk{width:22px;height:22px;border-radius:6px;border:2px solid #3a3a55;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#000;cursor:pointer;transition:all .2s;}
+.pt-chk.on{background:var(--green);border-color:var(--green);}
+.pt-nm{flex:1;font-size:14px;line-height:1.3;}
+.pt-nm.done{text-decoration:line-through;color:var(--text2);}
+.pt-del{background:none;border:none;color:#3a3a55;font-size:14px;cursor:pointer;padding:2px 4px;transition:color .15s;}
+.pt-del:active{color:var(--red);}
+/* ── Nudge ── */
+.nudge-wrap{background:linear-gradient(135deg,rgba(243,156,18,.13),rgba(231,76,60,.07));border:1.5px solid rgba(243,156,18,.55);border-radius:18px;padding:16px;}
+.nudge-eyebrow{font-size:10px;font-weight:700;color:var(--orange);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
+.nudge-msg{font-size:15px;font-weight:600;line-height:1.45;margin-bottom:6px;}
+.nudge-sub{font-size:12px;color:var(--text2);margin-bottom:12px;}
+.nudge-btns{display:flex;gap:8px;}
+.nudge-go{background:var(--orange);color:#000;border:none;border-radius:12px;padding:10px 18px;font-size:14px;font-weight:700;cursor:pointer;flex:1;}
+.nudge-skip{background:none;border:1px solid #3a3a55;color:var(--text2);border-radius:12px;padding:10px 12px;font-size:13px;cursor:pointer;}
 </style>
 </head>
 <body>
@@ -305,6 +336,7 @@ body{
   <div style="font-size:13px;color:var(--text2);margin-bottom:14px;line-height:1.6;">
     Svuota la testa qui. Poi tocca <strong style="color:var(--accent)">→ Oggi</strong> per portare un task nella lista di oggi.
   </div>
+  <div id="nudgeCard" style="margin-bottom:16px;display:none;"></div>
   <div id="areeList"></div>
 </div>
 
@@ -438,6 +470,20 @@ body{
   </div>
 </div>
 
+<!-- MODAL: nuovo progetto -->
+<div class="modal-overlay" id="projModal">
+  <div class="modal-sheet">
+    <div class="modal-title">📁 Nuovo Progetto</div>
+    <input class="m-input" id="projNameInput" placeholder="Nome progetto (es. Scooter, Airbnb...)">
+    <input class="m-input" id="projGoalInput" placeholder="Obiettivo finale (opzionale)">
+    <div style="font-size:12px;color:var(--orange);font-weight:700;margin:10px 0 4px;">💡 Quale azione puoi fare ORA?</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:8px;">Anche solo 5 minuti bastano. Scrivi la prima mossa concreta.</div>
+    <input class="m-input" id="projFirstTask" placeholder="es. cerca video diagnostica scooter su YouTube">
+    <button class="m-btn m-primary" onclick="confirmNewProj()">Crea Progetto</button>
+    <button class="m-btn m-cancel" onclick="closeModal('projModal')">Annulla</button>
+  </div>
+</div>
+
 <!-- MODAL: giorno calendario -->
 <div class="modal-overlay" id="dayModal">
   <div class="modal-sheet">
@@ -502,7 +548,8 @@ const S={
   yearTasks:LS.g('yearTasks',DEF_YEAR_TASKS),
   lWeek:LS.g('lWeek',''),lMonth:LS.g('lMonth',''),lYear:LS.g('lYear',''),
   calEvts:LS.g('calEvts',{}),
-  timerSec:LS.g('timerSec',25*60),timerOn:false,timerRef:null,_calKey:null
+  timerSec:LS.g('timerSec',25*60),timerOn:false,timerRef:null,_calKey:null,
+  projDismiss:LS.g('projDismiss',{})
 };
 
 // ── Migrazione dati esistenti ──
@@ -513,6 +560,7 @@ function migrateData(){
   [{id:'salute',name:'Salute',emoji:'🏥',badge:'b-salute',tasks:[]},{id:'famiglia',name:'Famiglia',emoji:'👨‍👩‍👧',badge:'b-famiglia',tasks:[]}].forEach(na=>{
     if(!S.areaData.find(a=>a.id===na.id)){S.areaData.push(na);changed=true;}
   });
+  S.areaData.forEach(a=>{if(!a.projects){a.projects=[];changed=true;}});
   if(changed)LS.s('areaData',S.areaData);
 }
 
@@ -542,6 +590,7 @@ function showTab(name,btn){
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('p-'+name).classList.add('active');
   btn.classList.add('active');
+  if(name==='aree')renderNudge();
 }
 
 // ── Affermazioni ──
@@ -649,7 +698,10 @@ function toggleTodayTask(idx){
       const t=S.todayTasks.find(t=>t.id===taskId);
       if(!t||!t.done)return;
       const el=document.querySelector(`[data-task-id="${taskId}"]`);
-      if(el){el.style.opacity='0.08';el.style.transition='opacity 0.8s';setTimeout(()=>{S.todayTasks=S.todayTasks.filter(t=>t.id!==taskId);LS.s('todayTasks',S.todayTasks);renderTodayList();},850);}
+      if(el){el.style.opacity='0.08';el.style.transition='opacity 0.8s';setTimeout(()=>{
+        if(t.srcId){const sa=S.areaData.find(a=>a.id===t.areaId);if(sa){if(t.projId){const sp=(sa.projects||[]).find(p=>p.id===t.projId);if(sp){sp.tasks=sp.tasks.filter(x=>x.id!==t.srcId);sp.lastActivity=Date.now();}}else{sa.tasks=sa.tasks.filter(x=>x.id!==t.srcId);}LS.s('areaData',S.areaData);renderAree();}}
+        S.todayTasks=S.todayTasks.filter(x=>x.id!==taskId);LS.s('todayTasks',S.todayTasks);renderTodayList();
+      },850);}
     },1500);
   }
 }
@@ -781,11 +833,134 @@ document.addEventListener('visibilitychange',()=>{
 });
 
 // ── Aree ──
-function renderAree(){document.getElementById('areeList').innerHTML=S.areaData.map(area=>`<div class="area-card"><div class="area-head" onclick="toggleArea('${area.id}')"><div class="area-head-left"><span class="area-emoji">${area.emoji}</span><div><div class="area-name-txt">${area.name}</div><div class="area-count-txt">${area.tasks.length} task nel backlog</div></div></div><span class="area-chevron" id="chev-${area.id}">›</span></div><div class="area-body" id="body-${area.id}">${area.tasks.length?area.tasks.map(t=>`<div class="a-task"><div class="a-task-name">${t.name}</div><button class="a-send-btn" id="sb-${t.id}" onclick="sendToOggi('${area.id}','${t.id}',this);event.stopPropagation()">→ Oggi</button><button class="a-task-del" onclick="delAreaTask('${area.id}','${t.id}');event.stopPropagation()" title="Rimuovi">✕</button></div>`).join(''):'<div style="color:var(--text2);font-size:13px;padding:8px 0">Backlog vuoto — aggiungine uno 👇</div>'}<div class="irow" style="margin-top:10px;"><input class="iinput" id="ai-${area.id}" placeholder="Aggiungi al backlog ${area.name}..." onkeydown="if(event.key===\'Enter\')addAreaTask(\'${area.id}\')"><button class="ibtn" onclick="addAreaTask(\'${area.id}\')">+</button></div></div></div>`).join('');}
+function projsHTML(area){
+  const projs=area.projects||[];
+  let h='<div class="proj-wrap"><div class="proj-lbl">📁 Progetti<button class="proj-add-btn" onclick="openProjModal(\''+area.id+'\');event.stopPropagation()">+ Nuovo</button></div>';
+  if(!projs.length)h+='<div style="color:var(--text2);font-size:12px;padding:2px 0 4px;">Nessun progetto — aggiungine uno per tracciare attività nel tempo.</div>';
+  projs.forEach(proj=>{
+    const last=proj.lastActivity||proj.createdAt||Date.now();
+    const days=Math.floor((Date.now()-last)/864e5);
+    const stale=days>=2;
+    const meta=days===0?'Aggiornato oggi':days===1?'Aggiornato ieri':('Fermo da '+days+' giorni ⚠️');
+    const done=(proj.tasks||[]).filter(t=>t.done).length,tot=(proj.tasks||[]).length;
+    h+=`<div class="proj-card"><div class="proj-head" onclick="toggleProj('${area.id}','${proj.id}')"><div class="proj-info"><div class="proj-name-txt">📋 ${proj.name}</div><div class="proj-meta${stale?' stale':''}">${meta}${tot?' · '+done+'/'+tot+' task':''}</div></div><span class="proj-chev" id="pchev-${proj.id}">›</span></div><div class="proj-body" id="pbody-${proj.id}">${proj.goal?'<div class="proj-goal-lbl">🎯 '+proj.goal+'</div>':''}${(proj.tasks||[]).map(t=>`<div class="pt-row"><div class="pt-chk${t.done?' on':''}" onclick="togglePT('${area.id}','${proj.id}','${t.id}')">${t.done?'✓':''}</div><div class="pt-nm${t.done?' done':''}">${t.name}</div>${projTaskBtn(area.id,proj.id,t)}<button class="pt-del" onclick="delPT('${area.id}','${proj.id}','${t.id}');event.stopPropagation()">✕</button></div>`).join('')}<div style="margin-top:10px;padding:10px 12px;background:rgba(243,156,18,.08);border-left:3px solid var(--orange);border-radius:0 10px 10px 0;"><div style="font-size:12px;font-weight:700;color:var(--orange);margin-bottom:2px;">💡 Quale azione ti porta più vicino all'obiettivo?</div><div style="font-size:11px;color:var(--text2);">Anche solo 5 minuti bastano — scrivi la prossima mossa.</div></div><div class="irow" style="margin-top:8px;"><input class="iinput" id="pti-${proj.id}" placeholder="Prossima mossa concreta..." onkeydown="if(event.key==='Enter')addPT('${area.id}','${proj.id}')"><button class="ibtn" onclick="addPT('${area.id}','${proj.id}')">+</button></div><button onclick="delProj('${area.id}','${proj.id}');event.stopPropagation()" style="width:100%;margin-top:10px;background:none;border:1px solid #2a2a3a;border-radius:12px;color:var(--text2);padding:9px;font-size:12px;cursor:pointer;">🗑 Elimina progetto</button></div></div>`;
+  });
+  h+='</div>';
+  return h;
+}
+function renderAree(){
+  document.getElementById('areeList').innerHTML=S.areaData.map(area=>{
+    const pc=area.projects&&area.projects.length?' · '+area.projects.length+' progett'+(area.projects.length===1?'o':'i'):'';
+    return`<div class="area-card"><div class="area-head" onclick="toggleArea('${area.id}')"><div class="area-head-left"><span class="area-emoji">${area.emoji}</span><div><div class="area-name-txt">${area.name}</div><div class="area-count-txt">${area.tasks.length} task nel backlog${pc}</div></div></div><span class="area-chevron" id="chev-${area.id}">›</span></div><div class="area-body" id="body-${area.id}">${area.tasks.length?area.tasks.map(t=>`<div class="a-task"><div class="a-task-name">${t.name}</div><button class="a-send-btn" id="sb-${t.id}" onclick="sendToOggi('${area.id}','${t.id}',this);event.stopPropagation()">→ Oggi</button><button class="a-task-del" onclick="delAreaTask('${area.id}','${t.id}');event.stopPropagation()" title="Rimuovi">✕</button></div>`).join(''):'<div style="color:var(--text2);font-size:13px;padding:8px 0">Backlog vuoto — aggiungine uno 👇</div>'}<div class="irow" style="margin-top:10px;"><input class="iinput" id="ai-${area.id}" placeholder="Aggiungi al backlog ${area.name}..." onkeydown="if(event.key===\'Enter\')addAreaTask(\'${area.id}\')"><button class="ibtn" onclick="addAreaTask(\'${area.id}\')">+</button></div>${projsHTML(area)}</div></div>`;
+  }).join('');
+  renderNudge();
+}
 function toggleArea(id){const body=document.getElementById('body-'+id);const opening=!body.classList.contains('open');body.classList.toggle('open');document.getElementById('chev-'+id).classList.toggle('open');if(opening){const card=body.closest('.area-card');if(card)setTimeout(()=>card.scrollIntoView({behavior:'smooth',block:'start'}),60);}}
 function delAreaTask(areaId,taskId){const area=S.areaData.find(a=>a.id===areaId);area.tasks=area.tasks.filter(t=>t.id!==taskId);LS.s('areaData',S.areaData);const wasOpen=document.getElementById('body-'+areaId).classList.contains('open');renderAree();if(wasOpen){document.getElementById('body-'+areaId).classList.add('open');document.getElementById('chev-'+areaId).classList.add('open');}}
 function addAreaTask(areaId){const inp=document.getElementById('ai-'+areaId);const name=inp.value.trim();if(!name)return;const area=S.areaData.find(a=>a.id===areaId);area.tasks.push({id:areaId+Date.now(),name});LS.s('areaData',S.areaData);inp.value='';const wasOpen=document.getElementById('body-'+areaId).classList.contains('open');renderAree();document.getElementById('body-'+areaId).classList.add('open');document.getElementById('chev-'+areaId).classList.add('open');setTimeout(()=>document.getElementById('ai-'+areaId).focus(),50);}
 function sendToOggi(areaId,taskId,btn){const area=S.areaData.find(a=>a.id===areaId);const task=area.tasks.find(t=>t.id===taskId);const today=new Date().toDateString();if(S.todayTasks.some(t=>t.srcId===taskId&&t.date===today)){btn.textContent='✓ già in lista';setTimeout(()=>btn.textContent='→ Oggi',1500);return;}S.todayTasks.push({id:'td'+Date.now(),srcId:taskId,name:task.name,areaId,badge:area.badge,done:false,date:today});LS.s('todayTasks',S.todayTasks);renderTodayList();btn.textContent='✓ aggiunto!';btn.classList.add('sent');setTimeout(()=>{btn.textContent='→ Oggi';btn.classList.remove('sent');},1500);}
+
+// ── Progetti CRUD ──
+let _projAreaId=null;
+function openProjModal(areaId){_projAreaId=areaId;document.getElementById('projNameInput').value='';document.getElementById('projGoalInput').value='';document.getElementById('projModal').classList.add('open');setTimeout(()=>document.getElementById('projNameInput').focus(),300);}
+function confirmNewProj(){
+  const name=document.getElementById('projNameInput').value.trim();if(!name)return;
+  const goal=document.getElementById('projGoalInput').value.trim();
+  const area=S.areaData.find(a=>a.id===_projAreaId);if(!area)return;
+  if(!area.projects)area.projects=[];
+  const firstTask=document.getElementById('projFirstTask').value.trim();
+  const initTasks=firstTask?[{id:'t'+Date.now(),name:firstTask,done:false}]:[];
+  area.projects.push({id:'p'+Date.now(),name,goal,tasks:initTasks,createdAt:Date.now(),lastActivity:Date.now()});
+  LS.s('areaData',S.areaData);closeModal('projModal');
+  renderAree();
+  const b=document.getElementById('body-'+_projAreaId);if(b)b.classList.add('open');
+  const c=document.getElementById('chev-'+_projAreaId);if(c)c.classList.add('open');
+}
+function toggleProj(areaId,projId){
+  const b=document.getElementById('pbody-'+projId);const c=document.getElementById('pchev-'+projId);
+  if(!b)return;b.classList.toggle('open');c.classList.toggle('open');
+}
+function _saveOpen(){
+  const o={a:{},p:{}};
+  S.areaData.forEach(a=>{const b=document.getElementById('body-'+a.id);o.a[a.id]=b&&b.classList.contains('open');(a.projects||[]).forEach(p=>{const pb=document.getElementById('pbody-'+p.id);o.p[p.id]=pb&&pb.classList.contains('open');});});
+  return o;
+}
+function _restoreOpen(o){
+  S.areaData.forEach(a=>{
+    if(o.a[a.id]){const b=document.getElementById('body-'+a.id);if(b)b.classList.add('open');const c=document.getElementById('chev-'+a.id);if(c)c.classList.add('open');}
+    (a.projects||[]).forEach(p=>{if(o.p[p.id]){const pb=document.getElementById('pbody-'+p.id);if(pb)pb.classList.add('open');const pc=document.getElementById('pchev-'+p.id);if(pc)pc.classList.add('open');}});
+  });
+}
+function addPT(areaId,projId){
+  const inp=document.getElementById('pti-'+projId);const name=inp.value.trim();if(!name)return;
+  const area=S.areaData.find(a=>a.id===areaId);const proj=(area.projects||[]).find(p=>p.id===projId);if(!proj)return;
+  proj.tasks.push({id:'t'+Date.now(),name,done:false});proj.lastActivity=Date.now();
+  LS.s('areaData',S.areaData);const o=_saveOpen();renderAree();_restoreOpen(o);
+  setTimeout(()=>{const el=document.getElementById('pti-'+projId);if(el)el.focus();},50);
+}
+function togglePT(areaId,projId,taskId){
+  const area=S.areaData.find(a=>a.id===areaId);const proj=(area.projects||[]).find(p=>p.id===projId);
+  const task=proj.tasks.find(t=>t.id===taskId);task.done=!task.done;proj.lastActivity=Date.now();
+  LS.s('areaData',S.areaData);const o=_saveOpen();renderAree();_restoreOpen(o);
+}
+function delPT(areaId,projId,taskId){
+  const area=S.areaData.find(a=>a.id===areaId);const proj=(area.projects||[]).find(p=>p.id===projId);
+  proj.tasks=proj.tasks.filter(t=>t.id!==taskId);
+  LS.s('areaData',S.areaData);const o=_saveOpen();renderAree();_restoreOpen(o);
+}
+function delProj(areaId,projId){
+  if(!confirm('Eliminare il progetto e tutti i suoi task?'))return;
+  const area=S.areaData.find(a=>a.id===areaId);area.projects=(area.projects||[]).filter(p=>p.id!==projId);
+  LS.s('areaData',S.areaData);const o=_saveOpen();renderAree();_restoreOpen(o);
+}
+function projTaskBtn(areaId,projId,t){if(t.done)return'';return`<button class="a-send-btn" id="psb-${t.id}" onclick="sendProjToOggi('${areaId}','${projId}','${t.id}',this);event.stopPropagation()">→ Oggi</button>`;}
+function sendProjToOggi(areaId,projId,taskId,btn){
+  const area=S.areaData.find(a=>a.id===areaId);
+  const proj=(area.projects||[]).find(p=>p.id===projId);
+  const task=proj.tasks.find(t=>t.id===taskId);
+  const today=new Date().toDateString();
+  if(S.todayTasks.some(t=>t.srcId===taskId&&t.date===today)){btn.textContent='✓ già in lista';setTimeout(()=>btn.textContent='→ Oggi',1500);return;}
+  S.todayTasks.push({id:'td'+Date.now(),srcId:taskId,projId,name:task.name,areaId,badge:area.badge,done:false,date:today});
+  LS.s('todayTasks',S.todayTasks);renderTodayList();
+  btn.textContent='✓ aggiunto!';btn.classList.add('sent');setTimeout(()=>{btn.textContent='→ Oggi';btn.classList.remove('sent');},1500);
+}
+// ── Nudge ──
+const NUDGE_MSGS=[
+  (n,d)=>`"${n}" è fermo da ${d} giorni. Cosa puoi fare nei prossimi 10 minuti?`,
+  (n,d)=>`Hey! "${n}" aspetta da ${d} giorni. Scegli UNA cosa e falla ora.`,
+  (n,d)=>`${d} giorni senza toccare "${n}". Non servono ore — bastano 5 minuti.`,
+  (n,d)=>`"${n}" è ancora lì fermo. ${d} giorni. È ora di muoversi.`,
+  (n,d)=>`Ricordi "${n}"? Fermo da ${d} giorni. Anche una piccola azione conta.`,
+];
+function renderNudge(){
+  const el=document.getElementById('nudgeCard');if(!el)return;
+  const today=new Date().toDateString();const dismissed=S.projDismiss||{};
+  let best=null,bestDays=0,bestArea=null;
+  S.areaData.forEach(area=>{(area.projects||[]).forEach(proj=>{
+    if(dismissed[proj.id]===today)return;
+    const last=proj.lastActivity||proj.createdAt||Date.now();
+    const days=Math.floor((Date.now()-last)/864e5);
+    if(days>=2&&days>bestDays){best=proj;bestDays=days;bestArea=area;}
+  });});
+  if(!best){el.style.display='none';return;}
+  const msg=NUDGE_MSGS[bestDays%NUDGE_MSGS.length](best.name,bestDays);
+  el.style.display='block';
+  el.innerHTML=`<div class="nudge-wrap"><div class="nudge-eyebrow">⚡ Progetto in attesa</div><div class="nudge-msg">${msg}</div><div class="nudge-sub">${bestArea.emoji} ${bestArea.name}${best.goal?' · 🎯 '+best.goal:''}</div><div class="nudge-btns"><button class="nudge-go" onclick="goToProj('${bestArea.id}','${best.id}')">Vai ora →</button><button class="nudge-skip" onclick="dismissNudge('${best.id}')">Dopo</button></div></div>`;
+}
+function dismissNudge(projId){
+  if(!S.projDismiss)S.projDismiss={};S.projDismiss[projId]=new Date().toDateString();
+  LS.s('projDismiss',S.projDismiss);renderNudge();
+}
+function goToProj(areaId,projId){
+  const btn=document.querySelectorAll('.tab-btn')[2];if(btn)showTab('aree',btn);
+  setTimeout(()=>{
+    const body=document.getElementById('body-'+areaId);
+    if(body&&!body.classList.contains('open')){body.classList.add('open');const chev=document.getElementById('chev-'+areaId);if(chev)chev.classList.add('open');}
+    const pb=document.getElementById('pbody-'+projId);
+    if(pb&&!pb.classList.contains('open')){pb.classList.add('open');const pc=document.getElementById('pchev-'+projId);if(pc)pc.classList.add('open');}
+    setTimeout(()=>{const card=document.getElementById('body-'+areaId);if(card)card.scrollIntoView({behavior:'smooth',block:'start'});},100);
+  },150);
+}
 
 // ── Modali focus/task ──
 function openFocusModal(){document.getElementById('focusModalList').innerHTML=S.areaData.map(area=>area.tasks.length?`<div class="m-section-lbl">${area.emoji} ${area.name}</div>`+area.tasks.map(t=>`<div class="ts-item" onclick="selectFocus('${area.id}','${t.id}','${area.badge}')"><div class="ts-item-name">${t.name}</div></div>`).join(''):'' ).join('');document.getElementById('focusModal').classList.add('open');}
